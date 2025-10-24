@@ -3,22 +3,24 @@
 @section('content')
 <div class="max-w-7xl mx-auto px-4 py-8">
     <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Keranjang Belanja</h1>
+        <h1 class="text-4xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
+            Keranjang Belanja
+        </h1>
         <p class="text-gray-600 mt-2">Review produk yang akan Anda beli</p>
     </div>
 
     @if($cartItems->count() > 0)
         <div id="messageContainer" class="mb-6"></div>
 
-        <div class="bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-pink-100">
             <div class="p-6">
                 <div class="space-y-6">
                     @foreach($cartItems as $cartItem)
-                    <div class="flex items-center space-x-4 border-b border-gray-200 pb-6 last:border-b-0" data-cart-item-id="{{ $cartItem->id }}">
+                    <div class="flex items-center space-x-4 border-b border-pink-100 pb-6 last:border-b-0 hover:bg-pink-50 p-4 rounded-xl transition" data-cart-item-id="{{ $cartItem->id }}">
                         <div class="flex-shrink-0">
-                            <img src="https://via.placeholder.com/100x100?text=Preloved" 
+                            <img src="{{ $cartItem->product->image_url }}" 
                                  alt="{{ $cartItem->product->name }}"
-                                 class="w-20 h-20 object-cover rounded-lg">
+                                 class="w-20 h-20 object-cover rounded-xl border-2 border-pink-200">
                         </div>
                         
                         <div class="flex-1 min-w-0">
@@ -29,20 +31,19 @@
                                 {{ Str::limit($cartItem->product->description, 50) }}
                             </p>
                             <div class="mt-2 flex items-center space-x-4">
-                                <span class="text-2xl font-bold text-pink-600">
+                                <span class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
                                     Rp {{ number_format($cartItem->product->price, 0, ',', '.') }}
                                 </span>
-                                <span class="text-sm text-gray-500">
+                                <span class="text-sm text-gray-500 bg-pink-100 px-3 py-1 rounded-full">
                                     Stok: {{ $cartItem->product->stock }}
                                 </span>
                             </div>
                         </div>
 
                         <div class="flex items-center space-x-3">
-                            <!-- Remove manual update form, use AJAX buttons instead -->
-                            <div class="flex items-center space-x-2">
+                            <div class="flex items-center space-x-2 bg-pink-50 rounded-xl p-2">
                                 <button type="button" 
-                                        class="quantity-decrease w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                        class="quantity-decrease w-8 h-8 flex items-center justify-center text-pink-600 hover:bg-pink-200 rounded-lg transition-colors"
                                         data-cart-item-id="{{ $cartItem->id }}"
                                         data-current-quantity="{{ $cartItem->quantity }}"
                                         data-max-quantity="{{ $cartItem->product->stock }}">
@@ -50,7 +51,7 @@
                                 </button>
                                 
                                 <input type="number" 
-                                       class="quantity-input w-16 text-center border border-gray-300 rounded-lg py-1"
+                                       class="quantity-input w-12 text-center border-0 bg-white rounded-lg py-1 font-semibold"
                                        value="{{ $cartItem->quantity }}" 
                                        min="1" 
                                        max="{{ $cartItem->product->stock }}"
@@ -58,7 +59,7 @@
                                        data-max-quantity="{{ $cartItem->product->stock }}">
                                 
                                 <button type="button" 
-                                        class="quantity-increase w-8 h-8 flex items-center justify-center border border-gray-300 rounded-lg hover:bg-gray-100 transition-colors"
+                                        class="quantity-increase w-8 h-8 flex items-center justify-center text-pink-600 hover:bg-pink-200 rounded-lg transition-colors"
                                         data-cart-item-id="{{ $cartItem->id }}"
                                         data-current-quantity="{{ $cartItem->quantity }}"
                                         data-max-quantity="{{ $cartItem->product->stock }}">
@@ -70,7 +71,7 @@
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" 
-                                        class="px-3 py-1 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors">
+                                        class="px-3 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </form>
@@ -79,23 +80,25 @@
                     @endforeach
                 </div>
 
-                <div class="mt-8 pt-6 border-t border-gray-200">
+                <div class="mt-8 pt-6 border-t-2 border-pink-100">
                     <div class="flex justify-between items-center mb-6">
                         <span class="text-2xl font-bold text-gray-900">Total:</span>
-                        <span class="text-2xl font-bold text-pink-600" id="cart-total">Rp {{ number_format($total, 0, ',', '.') }}</span>
+                        <span class="text-3xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent" id="cart-total">
+                            Rp {{ number_format($total, 0, ',', '.') }}
+                        </span>
                     </div>
 
                     <div class="flex justify-between space-x-4">
                         <form action="{{ route('cart.clear') }}" method="POST">
                             @csrf
                             <button type="submit" 
-                                    class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                    class="px-6 py-3 border-2 border-pink-300 text-pink-600 rounded-xl hover:bg-pink-50 transition-colors font-semibold">
                                 <i class="fas fa-trash mr-2"></i>Kosongkan Keranjang
                             </button>
                         </form>
 
                         <a href="{{ route('checkout.form') }}" 
-                           class="px-8 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-semibold inline-flex items-center">
+                           class="px-8 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all font-semibold inline-flex items-center shadow-lg transform hover:scale-105">
                             <i class="fas fa-credit-card mr-2"></i>Checkout Sekarang
                         </a>
                     </div>
@@ -103,23 +106,23 @@
             </div>
         </div>
 
-        <div class="mt-4 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="mt-4 bg-yellow-50 border-2 border-yellow-200 rounded-xl p-4">
             <div class="flex items-center">
                 <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
                 <p class="text-yellow-700 text-sm">
-                    <strong>Perhatian:</strong> Item di keranjang akan otomatis dihapus setelah <span id="expiration-timer">20</span> menit tidak ada aktivitas.
+                    <strong>Perhatian:</strong> Item di keranjang akan otomatis dihapus setelah <span id="expiration-timer" class="font-bold">20</span> menit tidak ada aktivitas.
                 </p>
             </div>
         </div>
     @else
-        <div class="text-center py-12">
-            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <i class="fas fa-shopping-cart text-gray-400 text-3xl"></i>
+        <div class="text-center py-16 bg-gradient-to-br from-pink-50 to-white rounded-2xl border-2 border-pink-100">
+            <div class="mx-auto w-24 h-24 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center mb-4 shadow-lg">
+                <i class="fas fa-shopping-cart text-white text-3xl"></i>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-2">Keranjang Kosong</h3>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Keranjang Kosong</h3>
             <p class="text-gray-600 mb-6">Belum ada produk yang ditambahkan ke keranjang</p>
             <a href="{{ route('products.index') }}" 
-               class="inline-flex items-center px-6 py-3 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
+               class="inline-flex items-center px-8 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all shadow-lg transform hover:scale-105">
                 <i class="fas fa-shopping-bag mr-2"></i>
                 Mulai Belanja
             </a>

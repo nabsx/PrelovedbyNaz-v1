@@ -4,19 +4,19 @@
 <div class="max-w-7xl mx-auto px-4 py-8">
     <!-- Breadcrumb -->
     <div class="mb-6 flex items-center space-x-2 text-sm text-gray-600">
-        <a href="{{ route('home') }}" class="hover:text-pink-600">Home</a>
-        <span>/</span>
-        <a href="{{ route('products.index') }}" class="hover:text-pink-600">Produk</a>
-        <span>/</span>
+        <a href="{{ route('home') }}" class="hover:text-pink-600 transition">Home</a>
+        <span class="text-pink-400">/</span>
+        <a href="{{ route('products.index') }}" class="hover:text-pink-600 transition">Produk</a>
+        <span class="text-pink-400">/</span>
         <span class="text-gray-900 font-medium">{{ $product->name }}</span>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Product Images -->
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden border-2 border-pink-100">
                 <!-- Main Image -->
-                <div class="relative bg-gray-100 aspect-square flex items-center justify-center overflow-hidden">
+                <div class="relative bg-gradient-to-br from-pink-50 to-white aspect-square flex items-center justify-center overflow-hidden">
                     @if($product->stock == 0)
                     <div class="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-10">
                         <span class="bg-red-500 text-white px-4 py-2 rounded-full text-lg font-semibold">Habis</span>
@@ -30,7 +30,7 @@
 
                 <!-- Gallery Thumbnails -->
                 @if($product->gallery_urls && count($product->gallery_urls) > 1)
-                <div class="p-4 border-t border-gray-200">
+                <div class="p-4 border-t-2 border-pink-100 bg-pink-50">
                     <div class="flex gap-2 overflow-x-auto">
                         <button onclick="changeImage('{{ $product->image_url }}')" 
                                 class="flex-shrink-0 w-20 h-20 border-2 border-pink-500 rounded-lg overflow-hidden hover:border-pink-600 transition-colors">
@@ -38,7 +38,7 @@
                         </button>
                         @foreach($product->gallery_urls as $image)
                         <button onclick="changeImage('{{ $image }}')" 
-                                class="flex-shrink-0 w-20 h-20 border-2 border-gray-300 rounded-lg overflow-hidden hover:border-pink-500 transition-colors">
+                                class="flex-shrink-0 w-20 h-20 border-2 border-pink-200 rounded-lg overflow-hidden hover:border-pink-500 transition-colors">
                             <img src="{{ $image }}" alt="Gallery" class="w-full h-full object-cover">
                         </button>
                         @endforeach
@@ -50,20 +50,20 @@
 
         <!-- Product Info -->
         <div class="lg:col-span-1">
-            <div class="bg-white rounded-lg shadow-md p-6 sticky top-4">
+            <div class="bg-white rounded-2xl shadow-lg p-6 sticky top-4 border-2 border-pink-100">
                 <!-- Category Badge -->
                 @if($product->category)
                 <div class="mb-4">
-                    <span class="inline-block bg-pink-100 text-pink-700 px-3 py-1 rounded-full text-sm font-medium">
+                    <span class="inline-block bg-gradient-to-r from-pink-200 to-pink-300 text-pink-700 px-4 py-2 rounded-full text-sm font-semibold">
                         {{ $product->category->name }}
                     </span>
                 </div>
                 @endif
 
                 <!-- Product Name -->
-                <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ $product->name }}</h1>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">{{ $product->name }}</h1>
 
-                <!-- Rating & Reviews (Optional - jika ada sistem rating) -->
+                <!-- Rating -->
                 <div class="flex items-center mb-4">
                     <div class="flex text-yellow-400">
                         <i class="fas fa-star"></i>
@@ -76,21 +76,23 @@
                 </div>
 
                 <!-- Price -->
-                <div class="mb-6 pb-6 border-b border-gray-200">
+                <div class="mb-6 pb-6 border-b-2 border-pink-100">
                     <div class="flex items-baseline gap-2">
-                        <span class="text-4xl font-bold text-pink-600">Rp {{ number_format($product->price, 0, ',', '.') }}</span>
+                        <span class="text-4xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
+                            Rp {{ number_format($product->price, 0, ',', '.') }}
+                        </span>
                     </div>
                 </div>
 
                 <!-- Stock Info -->
-                <div class="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div class="mb-6 p-4 bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl border-2 border-pink-200">
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-gray-700 font-medium">Stok Tersedia:</span>
                         <span class="text-lg font-bold text-gray-900">{{ $product->stock }} unit</span>
                     </div>
                     @if($product->stock > 0)
-                    <div class="w-full bg-gray-300 rounded-full h-2">
-                        <div class="bg-green-500 h-2 rounded-full" style="width: {{ min(($product->stock / 100) * 100, 100) }}%"></div>
+                    <div class="w-full bg-pink-300 rounded-full h-2">
+                        <div class="bg-gradient-to-r from-pink-500 to-pink-600 h-2 rounded-full" style="width: {{ min(($product->stock / 100) * 100, 100) }}%"></div>
                     </div>
                     @else
                     <div class="text-red-600 font-semibold">Produk Habis</div>
@@ -105,13 +107,13 @@
                     
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Jumlah</label>
-                        <div class="flex items-center border border-gray-300 rounded-lg">
-                            <button type="button" onclick="decreaseQty()" class="px-4 py-2 text-gray-600 hover:bg-gray-100">
+                        <div class="flex items-center border-2 border-pink-200 rounded-xl bg-pink-50">
+                            <button type="button" onclick="decreaseQty()" class="px-4 py-2 text-pink-600 hover:bg-pink-200 transition">
                                 <i class="fas fa-minus"></i>
                             </button>
                             <input type="number" id="quantity" name="quantity" value="1" min="1" max="{{ $product->stock }}" 
-                                   class="flex-1 text-center border-0 focus:ring-0 py-2">
-                            <button type="button" onclick="increaseQty()" class="px-4 py-2 text-gray-600 hover:bg-gray-100">
+                                   class="flex-1 text-center border-0 focus:ring-0 py-2 bg-transparent font-semibold">
+                            <button type="button" onclick="increaseQty()" class="px-4 py-2 text-pink-600 hover:bg-pink-200 transition">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
@@ -119,24 +121,24 @@
 
                     <div id="alertContainer" class="mb-4"></div>
 
-                    <button type="submit" id="addToCartBtn" class="w-full bg-pink-500 text-white py-3 rounded-lg font-semibold hover:bg-pink-600 transition-colors flex items-center justify-center gap-2">
+                    <button type="submit" id="addToCartBtn" class="w-full bg-gradient-to-r from-pink-500 to-pink-600 text-white py-3 rounded-xl font-semibold hover:from-pink-600 hover:to-pink-700 transition-all transform hover:scale-105 shadow-lg flex items-center justify-center gap-2">
                         <i class="fas fa-shopping-cart"></i>
                         Tambah ke Keranjang
                     </button>
                 </form>
                 @else
-                <button disabled class="w-full bg-gray-400 text-white py-3 rounded-lg font-semibold cursor-not-allowed">
+                <button disabled class="w-full bg-gray-400 text-white py-3 rounded-xl font-semibold cursor-not-allowed">
                     Produk Habis
                 </button>
                 @endif
 
                 <!-- Share Buttons -->
                 <div class="flex gap-2 mt-4">
-                    <button class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                    <button class="flex-1 border-2 border-pink-300 text-pink-600 py-2 rounded-xl hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 font-semibold">
                         <i class="fab fa-whatsapp"></i>
                         <span class="hidden sm:inline">Hubungi</span>
                     </button>
-                    <button class="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                    <button class="flex-1 border-2 border-pink-300 text-pink-600 py-2 rounded-xl hover:bg-pink-50 transition-colors flex items-center justify-center gap-2 font-semibold">
                         <i class="fas fa-share-alt"></i>
                         <span class="hidden sm:inline">Bagikan</span>
                     </button>
@@ -148,7 +150,7 @@
     <!-- Product Description -->
     <div class="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div class="lg:col-span-2">
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-pink-100">
                 <h2 class="text-2xl font-bold text-gray-900 mb-4">Deskripsi Produk</h2>
                 <div class="text-gray-700 leading-relaxed whitespace-pre-wrap">
                     {{ $product->description }}
@@ -158,18 +160,18 @@
 
         <!-- Product Details -->
         <div class="lg:col-span-1">
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-pink-100">
                 <h3 class="text-lg font-bold text-gray-900 mb-4">Informasi Produk</h3>
                 <div class="space-y-3">
-                    <div class="flex justify-between">
+                    <div class="flex justify-between pb-3 border-b border-pink-100">
                         <span class="text-gray-600">Kategori:</span>
                         <span class="font-medium text-gray-900">{{ $product->category->name ?? 'N/A' }}</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify-between pb-3 border-b border-pink-100">
                         <span class="text-gray-600">Stok:</span>
                         <span class="font-medium text-gray-900">{{ $product->stock }} unit</span>
                     </div>
-                    <div class="flex justify-between">
+                    <div class="flex justify-between pb-3 border-b border-pink-100">
                         <span class="text-gray-600">Ditambahkan:</span>
                         <span class="font-medium text-gray-900">{{ $product->created_at->format('d M Y') }}</span>
                     </div>
@@ -177,9 +179,9 @@
                         <span class="text-gray-600">Status:</span>
                         <span class="font-medium">
                             @if($product->is_active)
-                            <span class="text-green-600">Aktif</span>
+                            <span class="text-green-600 bg-green-100 px-3 py-1 rounded-full text-sm">Aktif</span>
                             @else
-                            <span class="text-red-600">Tidak Aktif</span>
+                            <span class="text-red-600 bg-red-100 px-3 py-1 rounded-full text-sm">Tidak Aktif</span>
                             @endif
                         </span>
                     </div>
@@ -194,8 +196,8 @@
         <h2 class="text-2xl font-bold text-gray-900 mb-6">Produk Terkait</h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             @foreach($relatedProducts as $relatedProduct)
-            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-                <div class="h-48 bg-gray-200 relative">
+            <div class="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all border-2 border-pink-100 hover:border-pink-300 transform hover:scale-105">
+                <div class="h-48 bg-gradient-to-br from-pink-50 to-white relative">
                     @if($relatedProduct->stock == 0)
                     <div class="absolute inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center">
                         <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm">Habis</span>
@@ -211,13 +213,15 @@
                     <p class="text-gray-600 text-sm mb-3 line-clamp-2">{{ Str::limit($relatedProduct->description, 80) }}</p>
                     
                     <div class="flex justify-between items-center mb-3">
-                        <span class="text-2xl font-bold text-pink-600">Rp {{ number_format($relatedProduct->price, 0, ',', '.') }}</span>
-                        <span class="text-sm text-gray-500">Stok: {{ $relatedProduct->stock }}</span>
+                        <span class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
+                            Rp {{ number_format($relatedProduct->price, 0, ',', '.') }}
+                        </span>
+                        <span class="text-sm text-gray-500 bg-pink-100 px-2 py-1 rounded-full">Stok: {{ $relatedProduct->stock }}</span>
                     </div>
                     
                     <div class="flex space-x-2">
                         <a href="{{ route('products.show', $relatedProduct) }}" 
-                           class="flex-1 bg-gray-100 text-gray-700 text-center py-2 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                           class="flex-1 bg-pink-100 text-pink-600 text-center py-2 rounded-lg hover:bg-pink-200 transition-colors text-sm font-semibold">
                             Detail
                         </a>
                         
@@ -227,7 +231,7 @@
                             <input type="hidden" name="product_id" value="{{ $relatedProduct->id }}">
                             <input type="hidden" name="quantity" value="1">
                             <button type="submit" 
-                                    class="w-full bg-pink-500 text-white py-2 rounded-lg hover:bg-pink-600 transition-colors text-sm">
+                                    class="w-full bg-gradient-to-r from-pink-500 to-pink-600 text-white py-2 rounded-lg hover:from-pink-600 hover:to-pink-700 transition-all text-sm font-semibold">
                                 <i class="fas fa-cart-plus"></i>
                             </button>
                         </form>
