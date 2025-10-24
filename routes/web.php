@@ -8,6 +8,8 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Public routes
@@ -38,7 +40,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/transactions/history', [TransactionController::class, 'history'])->name('transactions.history');
 });
 
-// 🔒 ADMIN ROUTES - MANUAL CHECK SAJA
+// Admin routes
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/dashboard', function () {
@@ -49,19 +51,32 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
         $products = \App\Models\Product::count();
         $transactions = \App\Models\Transaction::count();
         $revenue = \App\Models\Transaction::where('status', 'paid')->sum('total_price');
+        $users = \App\Models\User::count();
+        $recentProducts = \App\Models\Product::with('category')->latest()->take(5)->get();
+        $lowStockProducts = \App\Models\Product::where('stock', '<', 5)->where('stock', '>', 0)->get();
         
-        return view('admin.dashboard', compact('products', 'transactions', 'revenue'));
+        return view('admin.dashboard', compact(
+            'products', 
+            'transactions', 
+            'revenue', 
+            'users',
+            'recentProducts',
+            'lowStockProducts'
+        ));
     })->name('dashboard');
 
-    // Products - MANUAL CHECK di controller
-    Route::get('/products', [AdminProductController::class, 'index'])->name('products.index');
-    Route::get('/products/create', [AdminProductController::class, 'create'])->name('products.create');
-    Route::post('/products', [AdminProductController::class, 'store'])->name('products.store');
-    Route::get('/products/{product}', [AdminProductController::class, 'show'])->name('products.show');
-    Route::get('/products/{product}/edit', [AdminProductController::class, 'edit'])->name('products.edit');
-    Route::put('/products/{product}', [AdminProductController::class, 'update'])->name('products.update');
-    Route::delete('/products/{product}', [AdminProductController::class, 'destroy'])->name('products.destroy');
+    // Products routes
+    Route::resource('products', AdminProductController::class);
+    
+    // Categories routes
+    Route::resource('categories', CategoryController::class);
+    
+    // Users routes - PERBAIKI INI: tambahkan namespace Admin
+    Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('users.show');
+    Route::put('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('users.update');
 });
+
 
 // Midtrans notification handler
 Route::post('/payment/notification', [TransactionController::class, 'handleNotification'])

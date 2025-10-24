@@ -37,7 +37,6 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        // MANUAL ADMIN CHECK
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized access. Admin only.');
         }
@@ -45,12 +44,29 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
+            'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $validated['slug'] = Str::slug($validated['name']) . '-' . Str::random(6);
         $validated['is_active'] = $request->has('is_active');
+
+        // Upload main image
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        // Upload gallery images
+        if ($request->hasFile('gallery')) {
+            $galleryPaths = [];
+            foreach ($request->file('gallery') as $image) {
+                $galleryPaths[] = $image->store('products/gallery', 'public');
+            }
+            $validated['gallery'] = $galleryPaths;
+        }
 
         Product::create($validated);
 
@@ -70,17 +86,16 @@ class ProductController extends Controller
 
     public function edit(Product $product)
     {
-        // MANUAL ADMIN CHECK
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized access. Admin only.');
         }
 
-        return view('admin.products.edit', compact('product'));
+        $categories = Category::where('is_active', true)->get();
+        return view('admin.products.edit', compact('product', 'categories'));
     }
 
     public function update(Request $request, Product $product)
     {
-        // MANUAL ADMIN CHECK
         if (auth()->user()->role !== 'admin') {
             abort(403, 'Unauthorized access. Admin only.');
         }
@@ -88,8 +103,11 @@ class ProductController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
+            'category_id' => 'required|exists:categories,id',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'gallery.*' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         if ($product->name !== $validated['name']) {
@@ -97,6 +115,31 @@ class ProductController extends Controller
         }
 
         $validated['is_active'] = $request->has('is_active');
+
+        // Update main image
+        if ($request->hasFile('image')) {
+            // Delete old image
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $validated['image'] = $request->file('image')->store('products', 'public');
+        }
+
+        // Update gallery images
+        if ($request->hasFile('gallery')) {
+            // Delete old gallery images
+            if ($product->gallery) {
+                foreach ($product->gallery as $oldImage) {
+                    Storage::disk('public')->delete($oldImage);
+                }
+            }
+            
+            $galleryPaths = [];
+            foreach ($request->file('gallery') as $image) {
+                $galleryPaths[] = $image->store('products/gallery', 'public');
+            }
+            $validated['gallery'] = $galleryPaths;
+        }
 
         $product->update($validated);
 
