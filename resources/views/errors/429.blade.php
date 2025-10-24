@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>403 - Akses Ditolak</title>
+    <title>429 - Too Many Requests</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -33,8 +33,8 @@
                         <div class="float-animation">
                             <div class="w-48 h-48 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center pulse-glow">
                                 <div class="text-center">
-                                    <i class="fas fa-lock text-pink-600 text-6xl mb-4 block"></i>
-                                    <p class="text-pink-700 font-bold text-sm">Akses Terbatas</p>
+                                    <i class="fas fa-ban text-pink-600 text-6xl mb-4 block"></i>
+                                    <p class="text-pink-700 font-bold text-sm">Terlalu Banyak</p>
                                 </div>
                             </div>
                         </div>
@@ -47,13 +47,13 @@
                 <!-- Right Side - Content -->
                 <div class="text-center md:text-left">
                     <h1 class="text-7xl md:text-8xl font-black bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent mb-4">
-                        403
+                        429
                     </h1>
                     <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                        Akses Ditolak
+                        Terlalu Banyak Permintaan
                     </h2>
                     <p class="text-gray-600 text-lg mb-8 leading-relaxed">
-                        Maaf, Anda tidak memiliki izin untuk mengakses halaman ini. Area ini hanya dapat diakses oleh administrator atau pengguna yang berwenang.
+                        Anda telah mengirim terlalu banyak permintaan dalam waktu singkat. Silakan tunggu beberapa saat sebelum mencoba lagi.
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -63,13 +63,11 @@
                             Kembali ke Beranda
                         </a>
                         
-                        @auth
                         <a href="{{ route('products.index') }}" 
                            class="inline-flex items-center justify-center px-8 py-3 border-2 border-pink-500 text-pink-600 font-semibold rounded-full hover:bg-pink-50 transition-all duration-300">
                             <i class="fas fa-shopping-bag mr-2"></i>
                             Lanjut Belanja
                         </a>
-                        @endauth
                     </div>
 
                     <!-- Support Info -->

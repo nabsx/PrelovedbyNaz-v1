@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>403 - Akses Ditolak</title>
+    <title>503 - Service Unavailable</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -33,8 +33,8 @@
                         <div class="float-animation">
                             <div class="w-48 h-48 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center pulse-glow">
                                 <div class="text-center">
-                                    <i class="fas fa-lock text-pink-600 text-6xl mb-4 block"></i>
-                                    <p class="text-pink-700 font-bold text-sm">Akses Terbatas</p>
+                                    <i class="fas fa-tools text-pink-600 text-6xl mb-4 block"></i>
+                                    <p class="text-pink-700 font-bold text-sm">Maintenance</p>
                                 </div>
                             </div>
                         </div>
@@ -47,34 +47,32 @@
                 <!-- Right Side - Content -->
                 <div class="text-center md:text-left">
                     <h1 class="text-7xl md:text-8xl font-black bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent mb-4">
-                        403
+                        503
                     </h1>
                     <h2 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-                        Akses Ditolak
+                        Layanan Tidak Tersedia
                     </h2>
                     <p class="text-gray-600 text-lg mb-8 leading-relaxed">
-                        Maaf, Anda tidak memiliki izin untuk mengakses halaman ini. Area ini hanya dapat diakses oleh administrator atau pengguna yang berwenang.
+                        Kami sedang melakukan pemeliharaan sistem. Layanan akan kembali online dalam waktu singkat. Terima kasih atas kesabaran Anda!
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                        <a href="{{ url('/') }}" 
+                        <button onclick="location.reload()" 
                            class="inline-flex items-center justify-center px-8 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white font-semibold rounded-full hover:shadow-lg hover:shadow-pink-300 transition-all duration-300 transform hover:scale-105">
-                            <i class="fas fa-home mr-2"></i>
-                            Kembali ke Beranda
-                        </a>
+                            <i class="fas fa-redo mr-2"></i>
+                            Coba Lagi
+                        </button>
                         
-                        @auth
-                        <a href="{{ route('products.index') }}" 
+                        <a href="https://t.me/mayobox" target="_blank"
                            class="inline-flex items-center justify-center px-8 py-3 border-2 border-pink-500 text-pink-600 font-semibold rounded-full hover:bg-pink-50 transition-all duration-300">
-                            <i class="fas fa-shopping-bag mr-2"></i>
-                            Lanjut Belanja
+                            <i class="fab fa-telegram mr-2"></i>
+                            Hubungi Kami
                         </a>
-                        @endauth
                     </div>
 
                     <!-- Support Info -->
                     <div class="mt-8 pt-8 border-t border-pink-200">
-                        <p class="text-gray-600 text-sm mb-4">Butuh bantuan?</p>
+                        <p class="text-gray-600 text-sm mb-4">Follow kami untuk update terbaru</p>
                         <div class="flex gap-4 justify-center md:justify-start">
                             <a href="https://t.me/mayobox" target="_blank" class="text-pink-600 hover:text-pink-700 transition-colors">
                                 <i class="fab fa-telegram text-2xl"></i>
