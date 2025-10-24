@@ -8,6 +8,8 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Midtrans\Snap;
+use Midtrans\Transaction as MidtransTransaction;
 
 class TransactionController extends Controller
 {
@@ -130,9 +132,87 @@ class TransactionController extends Controller
 
             $cartItems->each->delete();
 
+            try {
+                $snapToken = $this->generateSnapToken($transaction);
+                if ($snapToken) {
+                    $transaction->update(['snap_token' => $snapToken]);
+                    \Log::info('Snap token generated successfully for transaction: ' . $transaction->transaction_code);
+                } else {
+                    \Log::warning('Snap token is empty for transaction: ' . $transaction->transaction_code);
+                }
+            } catch (\Exception $e) {
+                \Log::error('Midtrans Snap Token Error: ' . $e->getMessage(), [
+                    'transaction_code' => $transaction->transaction_code,
+                    'exception' => $e
+                ]);
+            }
+
             return redirect()->route('checkout.success', $transaction->transaction_code)
                 ->with('success', 'Pesanan berhasil dibuat. Silakan lakukan pembayaran.');
         });
+    }
+
+    private function generateSnapToken(Transaction $transaction)
+    {
+        try {
+            $transactionDetails = [
+                'order_id' => $transaction->transaction_code,
+                'gross_amount' => (int) $transaction->total_price,
+            ];
+
+            $customerDetails = [
+                'first_name' => auth()->user()->name,
+                'email' => auth()->user()->email,
+                'phone' => $transaction->phone,
+                'billing_address' => [
+                    'address' => $transaction->address,
+                    'city' => $transaction->city,
+                    'postal_code' => $transaction->postal_code,
+                    'country_code' => 'IDN',
+                ],
+                'shipping_address' => [
+                    'address' => $transaction->address,
+                    'city' => $transaction->city,
+                    'postal_code' => $transaction->postal_code,
+                    'country_code' => 'IDN',
+                ],
+            ];
+
+            $items = [];
+            foreach ($transaction->items as $item) {
+                $items[] = [
+                    'id' => $item->product_id,
+                    'price' => (int) $item->price,
+                    'quantity' => $item->quantity,
+                    'name' => $item->product->name,
+                ];
+            }
+
+            $payload = [
+                'transaction_details' => $transactionDetails,
+                'customer_details' => $customerDetails,
+                'item_details' => $items,
+                'enabled_payments' => [
+                    'qris',
+                    'bank_transfer',
+                    'echannel',
+                    'gopay',
+                    'shopeepay',
+                    'dana',
+                ],
+            ];
+
+            \Log::debug('Midtrans Snap Payload:', $payload);
+
+            $snapToken = Snap::getSnapToken($payload);
+            
+            \Log::debug('Snap token received:', ['token' => substr($snapToken, 0, 20) . '...']);
+
+            return $snapToken;
+        } catch (\Exception $e) {
+            \Log::error('Error generating snap token: ' . $e->getMessage());
+            throw $e;
+        }
     }
 
     public function success($transaction_code)
@@ -143,6 +223,46 @@ class TransactionController extends Controller
             ->firstOrFail();
 
         return view('checkout-success', compact('transaction'));
+    }
+
+    public function handleNotification(Request $request)
+    {
+        $payload = $request->all();
+        $serverKey = config('midtrans.server_key');
+        $hashed = hash('sha512', $payload['order_id'] . $payload['status_code'] . $payload['gross_amount'] . $serverKey);
+
+        if ($hashed !== $payload['signature_key']) {
+            return response()->json(['message' => 'Invalid signature'], 403);
+        }
+
+        $transaction = Transaction::where('transaction_code', $payload['order_id'])->first();
+
+        if (!$transaction) {
+            return response()->json(['message' => 'Transaction not found'], 404);
+        }
+
+        $transactionStatus = $payload['transaction_status'];
+
+        if ($transactionStatus === 'capture' || $transactionStatus === 'settlement') {
+            $transaction->update([
+                'status' => 'paid',
+                'paid_at' => now(),
+                'payment_details' => $payload,
+                'midtrans_transaction_id' => $payload['transaction_id'] ?? null,
+            ]);
+        } elseif ($transactionStatus === 'pending') {
+            $transaction->update([
+                'status' => 'pending',
+                'payment_details' => $payload,
+            ]);
+        } elseif ($transactionStatus === 'deny' || $transactionStatus === 'cancel' || $transactionStatus === 'expire') {
+            $transaction->update([
+                'status' => 'expired',
+                'payment_details' => $payload,
+            ]);
+        }
+
+        return response()->json(['message' => 'Notification processed']);
     }
 
     public function history()

@@ -36,6 +36,22 @@
             </div>
         </div>
 
+        <!-- Midtrans Payment Widget -->
+        @if($transaction->snap_token && $transaction->isPending())
+        <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border-2 border-pink-100">
+            <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+                <i class="fas fa-credit-card text-pink-500"></i>
+                Lakukan Pembayaran
+            </h2>
+            <button 
+                id="pay-button"
+                class="w-full px-6 py-3 bg-gradient-to-r from-pink-500 to-pink-600 text-white rounded-xl hover:from-pink-600 hover:to-pink-700 transition-all font-semibold shadow-lg"
+            >
+                Bayar Sekarang - Rp {{ number_format($transaction->total_price, 0, ',', '.') }}
+            </button>
+        </div>
+        @endif
+
         <!-- Order Details -->
         <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border-2 border-pink-100">
             <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
@@ -115,6 +131,8 @@
     </div>
 </div>
 
+<!-- Midtrans Snap Script -->
+<script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
 <script>
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
@@ -123,5 +141,25 @@ function copyToClipboard(text) {
         alert('Gagal menyalin kode transaksi');
     });
 }
+
+document.getElementById('pay-button')?.addEventListener('click', function() {
+    snap.pay('{{ $transaction->snap_token }}', {
+        onSuccess: function(result) {
+            console.log('Payment success:', result);
+            // Redirect ke halaman sukses atau refresh
+            location.reload();
+        },
+        onPending: function(result) {
+            console.log('Payment pending:', result);
+        },
+        onError: function(result) {
+            console.log('Payment error:', result);
+            alert('Pembayaran gagal. Silakan coba lagi.');
+        },
+        onClose: function() {
+            console.log('Payment popup closed');
+        }
+    });
+});
 </script>
 @endsection
