@@ -30,12 +30,14 @@ Route::prefix('cart')->group(function () {
     Route::get('/', [CartController::class, 'index'])->name('cart.index');
     Route::post('/add', [CartController::class, 'store'])->name('cart.store');
     Route::put('/{cartItem}', [CartController::class, 'update'])->name('cart.update');
+    Route::post('/{cartItem}/update-quantity', [CartController::class, 'updateQuantityAjax'])->name('cart.updateQuantityAjax');
     Route::delete('/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
     Route::post('/clear', [CartController::class, 'clear'])->name('cart.clear');
 });
 
 // Authenticated user routes
 Route::middleware('auth')->group(function () {
+    Route::get('/checkout', [TransactionController::class, 'showCheckoutForm'])->name('checkout.form');
     Route::post('/checkout', [TransactionController::class, 'checkout'])->name('checkout');
     Route::get('/transactions/history', [TransactionController::class, 'history'])->name('transactions.history');
 });

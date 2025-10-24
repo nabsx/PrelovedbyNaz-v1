@@ -8,7 +8,7 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-md p-6">
-        <form action="{{ route('admin.products.update', $product) }}" method="POST">
+        <form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
             
@@ -28,6 +28,24 @@
                     <textarea name="description" id="description" rows="4" required
                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500">{{ old('description', $product->description) }}</textarea>
                     @error('description')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Added category selection dropdown -->
+                <div>
+                    <label for="category_id" class="block text-sm font-medium text-gray-700">Kategori</label>
+                    <select name="category_id" id="category_id" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500">
+                        <option value="">-- Pilih Kategori --</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" 
+                                    {{ old('category_id', $product->category_id) == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('category_id')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -52,6 +70,48 @@
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
+
+                <!-- Added image upload section with preview -->
+                <div>
+                    <label for="image" class="block text-sm font-medium text-gray-700">Gambar Utama</label>
+                    <div class="mt-2 flex items-center space-x-4">
+                        @if($product->image)
+                            <div class="flex-shrink-0">
+                                <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->name }}" 
+                                     class="h-24 w-24 object-cover rounded-md border border-gray-300">
+                            </div>
+                        @endif
+                        <div class="flex-1">
+                            <input type="file" name="image" id="image" accept="image/*"
+                                   class="block w-full text-sm text-gray-500
+                                          file:mr-4 file:py-2 file:px-4
+                                          file:rounded-md file:border-0
+                                          file:text-sm file:font-semibold
+                                          file:bg-pink-50 file:text-pink-700
+                                          hover:file:bg-pink-100">
+                            <p class="text-xs text-gray-500 mt-1">PNG, JPG, GIF (Max 2MB)</p>
+                        </div>
+                    </div>
+                    @error('image')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Added gallery images upload -->
+                <div>
+                    <label for="gallery" class="block text-sm font-medium text-gray-700">Galeri Gambar</label>
+                    <input type="file" name="gallery[]" id="gallery" accept="image/*" multiple
+                           class="mt-1 block w-full text-sm text-gray-500
+                                  file:mr-4 file:py-2 file:px-4
+                                  file:rounded-md file:border-0
+                                  file:text-sm file:font-semibold
+                                  file:bg-pink-50 file:text-pink-700
+                                  hover:file:bg-pink-100">
+                    <p class="text-xs text-gray-500 mt-1">Pilih multiple gambar untuk galeri (Max 2MB per gambar)</p>
+                    @error('gallery.*')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>

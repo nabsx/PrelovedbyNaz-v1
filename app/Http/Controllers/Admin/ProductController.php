@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\Category;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -32,7 +34,8 @@ class ProductController extends Controller
             abort(403, 'Unauthorized access. Admin only.');
         }
 
-        return view('admin.products.create');
+        $categories = Category::where('is_active', true)->get();
+        return view('admin.products.create', compact('categories'));
     }
 
     public function store(Request $request)
@@ -65,7 +68,7 @@ class ProductController extends Controller
             foreach ($request->file('gallery') as $image) {
                 $galleryPaths[] = $image->store('products/gallery', 'public');
             }
-            $validated['gallery'] = $galleryPaths;
+            $validated['gallery'] = json_encode($galleryPaths);
         }
 
         Product::create($validated);
@@ -129,7 +132,8 @@ class ProductController extends Controller
         if ($request->hasFile('gallery')) {
             // Delete old gallery images
             if ($product->gallery) {
-                foreach ($product->gallery as $oldImage) {
+                $oldGallery = is_string($product->gallery) ? json_decode($product->gallery, true) : $product->gallery;
+                foreach ($oldGallery as $oldImage) {
                     Storage::disk('public')->delete($oldImage);
                 }
             }
@@ -138,7 +142,7 @@ class ProductController extends Controller
             foreach ($request->file('gallery') as $image) {
                 $galleryPaths[] = $image->store('products/gallery', 'public');
             }
-            $validated['gallery'] = $galleryPaths;
+            $validated['gallery'] = json_encode($galleryPaths);
         }
 
         $product->update($validated);

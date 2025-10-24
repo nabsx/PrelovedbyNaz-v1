@@ -16,6 +16,9 @@ class Product extends Model
         'price',
         'stock',
         'is_active',
+        'category_id',
+        'image',
+        'gallery',
     ];
 
     protected $casts = [
@@ -80,7 +83,9 @@ class Product extends Model
             return [asset('images/default-product.jpg')];
         }
         
-        return collect($this->gallery)->map(function ($image) {
+        $gallery = is_string($this->gallery) ? json_decode($this->gallery, true) : $this->gallery;
+        
+        return collect($gallery)->map(function ($image) {
             if (str_starts_with($image, 'http')) {
                 return $image;
             }

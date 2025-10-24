@@ -7,21 +7,91 @@ use App\Models\Transaction;
 use App\Models\TransactionItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Midtrans\Config;
-use Midtrans\Snap;
 
 class TransactionController extends Controller
 {
-    public function __construct()
+    // Midtrans will be initialized only when needed (in checkout method)
+
+    public function showCheckoutForm()
     {
-        Config::$serverKey = config('services.midtrans.server_key');
-        Config::$isProduction = config('services.midtrans.is_production');
-        Config::$isSanitized = config('services.midtrans.is_sanitized');
-        Config::$is3ds = config('services.midtrans.is_3ds');
+        $cartItems = CartItem::with('product')
+            ->active()
+            ->forUser(auth()->user())
+            ->get();
+
+        if ($cartItems->isEmpty()) {
+            return redirect()->route('cart.index')->with('error', 'Keranjang Anda kosong.');
+        }
+
+        $total = $cartItems->sum(function ($item) {
+            return $item->product->price * $item->quantity;
+        });
+
+        $paymentMethods = [
+            'qris' => [
+                'name' => 'QRIS',
+                'description' => 'Scan QR Code untuk pembayaran',
+                'logo' => 'QRIS'
+            ],
+            'bni_va' => [
+                'name' => 'BNI Virtual Account',
+                'description' => 'Minimum Pembayaran Sebesar Rp. 10.000,00',
+                'logo' => 'BNI'
+            ],
+            'mandiri_va' => [
+                'name' => 'Mandiri Virtual Account',
+                'description' => 'Minimum Pembayaran Sebesar Rp. 10.000,00',
+                'logo' => 'Mandiri'
+            ],
+            'bri_va' => [
+                'name' => 'BRI Virtual Account',
+                'description' => 'Minimum Pembayaran Sebesar Rp. 10.000,00',
+                'logo' => 'BRI'
+            ],
+            'qr_dana' => [
+                'name' => 'QR Dana',
+                'description' => 'Scan QR Code untuk pembayaran',
+                'logo' => 'Dana'
+            ],
+            'qr_gopay' => [
+                'name' => 'QR Go-Pay',
+                'description' => 'Scan QR Code untuk pembayaran',
+                'logo' => 'GoPay'
+            ],
+            'qr_shopeepay' => [
+                'name' => 'QR Shopee Pay',
+                'description' => 'Scan QR Code untuk pembayaran',
+                'logo' => 'ShopeePay'
+            ],
+            'qr_ovo' => [
+                'name' => 'QR OVO',
+                'description' => 'Scan QR Code untuk pembayaran',
+                'logo' => 'OVO'
+            ],
+        ];
+
+        return view('checkout-form', compact('cartItems', 'total', 'paymentMethods'));
     }
 
     public function checkout(Request $request)
     {
+        try {
+            \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
+            \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
+            \Midtrans\Config::$isSanitized = config('services.midtrans.is_sanitized');
+            \Midtrans\Config::$is3ds = config('services.midtrans.is_3ds');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Payment gateway configuration error. Please contact support.');
+        }
+
+        $validated = $request->validate([
+            'address' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:10',
+            'city' => 'required|string|max:100',
+            'phone' => 'required|string|max:20',
+            'payment_method' => 'required|in:credit_card,bank_transfer,e_wallet',
+        ]);
+
         $cartItems = CartItem::with('product')
             ->active()
             ->forUser(auth()->user())
@@ -37,7 +107,7 @@ class TransactionController extends Controller
             }
         }
 
-        return DB::transaction(function () use ($cartItems) {
+        return DB::transaction(function () use ($cartItems, $validated) {
             $total = $cartItems->sum(function ($item) {
                 return $item->product->price * $item->quantity;
             });
@@ -48,6 +118,11 @@ class TransactionController extends Controller
                 'status' => 'pending',
                 'total_price' => $total,
                 'expires_at' => now()->addHour(),
+                'address' => $validated['address'],
+                'postal_code' => $validated['postal_code'],
+                'city' => $validated['city'],
+                'phone' => $validated['phone'],
+                'payment_method' => $validated['payment_method'],
             ]);
 
             foreach ($cartItems as $item) {
@@ -71,11 +146,16 @@ class TransactionController extends Controller
                 'customer_details' => [
                     'first_name' => auth()->user()->name,
                     'email' => auth()->user()->email,
+                    'phone' => $validated['phone'],
                 ],
             ];
 
-            $snapToken = Snap::getSnapToken($params);
-            $transaction->update(['snap_token' => $snapToken]);
+            try {
+                $snapToken = \Midtrans\Snap::getSnapToken($params);
+                $transaction->update(['snap_token' => $snapToken]);
+            } catch (\Exception $e) {
+                return back()->with('error', 'Failed to generate payment token. Please try again.');
+            }
 
             return view('checkout', compact('transaction', 'snapToken'));
         });

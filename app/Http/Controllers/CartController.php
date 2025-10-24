@@ -11,6 +11,8 @@ class CartController extends Controller
 {
     public function index()
     {
+        CartItem::where('expires_at', '<=', now())->delete();
+
         $cartItems = CartItem::with('product')
             ->active()
             ->forUser(auth()->user())
@@ -33,43 +35,126 @@ class CartController extends Controller
         $product = Product::active()->findOrFail($request->product_id);
 
         if (!$product->hasStock($request->quantity)) {
-            return back()->with('error', 'Insufficient stock available.');
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stok tidak mencukupi. Stok tersedia: ' . $product->stock . ' unit'
+                ], 422);
+            }
+            return back()->with('error', 'Stok tidak mencukupi. Stok tersedia: ' . $product->stock . ' unit');
         }
 
-        DB::transaction(function () use ($request, $product) {
-            $cartItem = CartItem::active()
-                ->forUser(auth()->user())
-                ->where('product_id', $product->id)
-                ->first();
+        try {
+            DB::transaction(function () use ($request, $product) {
+                $cartItem = CartItem::active()
+                    ->forUser(auth()->user())
+                    ->where('product_id', $product->id)
+                    ->first();
 
-            if ($cartItem) {
-                $newQuantity = $cartItem->quantity + $request->quantity;
-                
-                if (!$product->hasStock($newQuantity)) {
-                    throw new \Exception('Insufficient stock available.');
+                if ($cartItem) {
+                    $newQuantity = $cartItem->quantity + $request->quantity;
+                    
+                    if (!$product->hasStock($newQuantity)) {
+                        throw new \Exception('Stok tidak mencukupi. Stok tersedia: ' . $product->stock . ' unit. Anda sudah menambahkan ' . $cartItem->quantity . ' unit.');
+                    }
+
+                    $cartItem->update([
+                        'quantity' => $newQuantity,
+                        'expires_at' => now()->addMinutes(20),
+                    ]);
+                } else {
+                    CartItem::create([
+                        'product_id' => $product->id,
+                        'user_id' => auth()->id(),
+                        'session_id' => auth()->check() ? null : session()->getId(),
+                        'quantity' => $request->quantity,
+                        'expires_at' => now()->addMinutes(20),
+                    ]);
                 }
+            });
 
-                $cartItem->update([
-                    'quantity' => $newQuantity,
-                    'expires_at' => now()->addMinutes(20),
-                ]);
-            } else {
-                CartItem::create([
-                    'product_id' => $product->id,
-                    'user_id' => auth()->id(),
-                    'session_id' => auth()->check() ? null : session()->getId(),
-                    'quantity' => $request->quantity,
-                    'expires_at' => now()->addMinutes(20),
-                ]);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Produk berhasil ditambahkan ke keranjang'
+                ], 201);
             }
-        });
 
-        return back()->with('success', 'Product added to cart successfully.');
+            return redirect()->route('cart.index')->with('success', 'Produk berhasil ditambahkan ke keranjang');
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ], 422);
+            }
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function updateQuantityAjax(Request $request, CartItem $cartItem)
+    {
+        if (auth()->check()) {
+            if ($cartItem->user_id !== auth()->id()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized action.'
+                ], 403);
+            }
+        } else {
+            if ($cartItem->session_id !== session()->getId()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized action.'
+                ], 403);
+            }
+        }
+
+        $request->validate([
+            'quantity' => 'required|integer|min:1',
+        ]);
+
+        if (!$cartItem->product->hasStock($request->quantity)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stok tidak mencukupi. Stok tersedia: ' . $cartItem->product->stock . ' unit'
+            ], 422);
+        }
+
+        $cartItem->update([
+            'quantity' => $request->quantity,
+            'expires_at' => now()->addMinutes(20),
+        ]);
+
+        $itemTotal = $cartItem->product->price * $cartItem->quantity;
+        $total = CartItem::active()
+            ->forUser(auth()->user())
+            ->sum(function ($item) {
+                return $item->product->price * $item->quantity;
+            });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Keranjang berhasil diupdate',
+            'quantity' => $cartItem->quantity,
+            'itemTotal' => $itemTotal,
+            'total' => $total,
+            'formattedItemTotal' => 'Rp ' . number_format($itemTotal, 0, ',', '.'),
+            'formattedTotal' => 'Rp ' . number_format($total, 0, ',', '.')
+        ]);
     }
 
     public function update(Request $request, CartItem $cartItem)
     {
-        $this->authorize('update', $cartItem);
+        if (auth()->check()) {
+            if ($cartItem->user_id !== auth()->id()) {
+                abort(403, 'Unauthorized action.');
+            }
+        } else {
+            if ($cartItem->session_id !== session()->getId()) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
 
         $request->validate([
             'quantity' => 'required|integer|min:1',
@@ -89,7 +174,15 @@ class CartController extends Controller
 
     public function destroy(CartItem $cartItem)
     {
-        $this->authorize('delete', $cartItem);
+        if (auth()->check()) {
+            if ($cartItem->user_id !== auth()->id()) {
+                abort(403, 'Unauthorized action.');
+            }
+        } else {
+            if ($cartItem->session_id !== session()->getId()) {
+                abort(403, 'Unauthorized action.');
+            }
+        }
 
         $cartItem->delete();
 
@@ -98,9 +191,15 @@ class CartController extends Controller
 
     public function clear()
     {
-        CartItem::active()
-            ->forUser(auth()->user())
-            ->delete();
+        if (auth()->check()) {
+            CartItem::active()
+                ->where('user_id', auth()->id())
+                ->delete();
+        } else {
+            CartItem::active()
+                ->where('session_id', session()->getId())
+                ->delete();
+        }
 
         return back()->with('success', 'Cart cleared successfully.');
     }

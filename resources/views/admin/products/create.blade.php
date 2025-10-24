@@ -8,7 +8,7 @@
     </div>
 
     <div class="bg-white rounded-lg shadow-md p-6">
-        <form action="{{ route('admin.products.store') }}" method="POST">
+        <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             
             <div class="space-y-6">
@@ -27,6 +27,23 @@
                     <textarea name="description" id="description" rows="4" required
                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500">{{ old('description') }}</textarea>
                     @error('description')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Add category selection dropdown -->
+                <div>
+                    <label for="category_id" class="block text-sm font-medium text-gray-700">Kategori</label>
+                    <select name="category_id" id="category_id" required
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500">
+                        <option value="">-- Pilih Kategori --</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @error('category_id')
                         <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                     @enderror
                 </div>
@@ -51,6 +68,28 @@
                             <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+                </div>
+
+                <!-- Add main image upload -->
+                <div>
+                    <label for="image" class="block text-sm font-medium text-gray-700">Gambar Utama</label>
+                    <input type="file" name="image" id="image" accept="image/*"
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500">
+                    <p class="text-gray-500 text-xs mt-1">Format: JPEG, PNG, JPG, GIF (Max: 2MB)</p>
+                    @error('image')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Add gallery images upload -->
+                <div>
+                    <label for="gallery" class="block text-sm font-medium text-gray-700">Galeri Gambar (Opsional)</label>
+                    <input type="file" name="gallery[]" id="gallery" accept="image/*" multiple
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-pink-500 focus:border-pink-500">
+                    <p class="text-gray-500 text-xs mt-1">Pilih multiple gambar. Format: JPEG, PNG, JPG, GIF (Max: 2MB per gambar)</p>
+                    @error('gallery')
+                        <p class="text-red-500 text-xs mt-1">{{ $message }}</p>
+                    @enderror
                 </div>
 
                 <div>
