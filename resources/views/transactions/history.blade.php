@@ -10,25 +10,37 @@
     @if($transactions->count() > 0)
         <div class="space-y-6">
             @foreach($transactions as $transaction)
-            <div class="bg-white rounded-lg shadow-md overflow-hidden">
+            <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
                 <div class="p-6">
                     <div class="flex justify-between items-start mb-4">
                         <div>
                             <h3 class="text-lg font-semibold text-gray-900">
-                                Order #{{ $transaction->midtrans_order_id }}
+                                Order #{{ $transaction->transaction_code }}
                             </h3>
                             <p class="text-gray-600 text-sm">
                                 {{ $transaction->created_at->format('d M Y H:i') }}
                             </p>
                         </div>
                         <div class="text-right">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
-                                @if($transaction->status === 'paid') bg-green-100 text-green-800
-                                @elseif($transaction->status === 'pending') bg-yellow-100 text-yellow-800
-                                @elseif($transaction->status === 'expired') bg-red-100 text-red-800
-                                @else bg-gray-100 text-gray-800 @endif">
-                                {{ strtoupper($transaction->status) }}
-                            </span>
+                            <div class="flex items-center gap-2 justify-end mb-2">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                    @if($transaction->status === 'paid') bg-green-100 text-green-800
+                                    @elseif($transaction->status === 'pending') bg-yellow-100 text-yellow-800
+                                    @elseif($transaction->status === 'expired') bg-red-100 text-red-800
+                                    @else bg-gray-100 text-gray-800 @endif">
+                                    {{ strtoupper($transaction->status) }}
+                                </span>
+                                <!-- Added payment status indicator -->
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                    @if($transaction->isPaid()) bg-blue-100 text-blue-800
+                                    @else bg-orange-100 text-orange-800 @endif">
+                                    @if($transaction->isPaid())
+                                        <i class="fas fa-check-circle mr-1"></i> Sudah Bayar
+                                    @else
+                                        <i class="fas fa-clock mr-1"></i> Belum Bayar
+                                    @endif
+                                </span>
+                            </div>
                             <p class="text-xl font-bold text-pink-600 mt-2">
                                 Rp {{ number_format($transaction->total_price, 0, ',', '.') }}
                             </p>
@@ -37,33 +49,53 @@
 
                     <div class="border-t border-gray-200 pt-4">
                         <h4 class="font-semibold text-gray-900 mb-3">Items:</h4>
-                        <div class="space-y-2">
+                        <div class="space-y-3">
                             @foreach($transaction->items as $item)
-                            <div class="flex justify-between items-center">
-                                <div class="flex items-center space-x-3">
-                                    <img src="https://via.placeholder.com/50x50?text=Preloved" 
-                                         alt="{{ $item->product->name }}"
-                                         class="w-10 h-10 object-cover rounded">
+                            <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center space-x-3 flex-1">
+                                    <!-- Display actual product image instead of placeholder -->
+                                    @if($item->product->image)
+                                        <img src="{{ asset('storage/' . $item->product->image) }}" 
+                                             alt="{{ $item->product->name }}"
+                                             class="w-12 h-12 object-cover rounded-md border border-gray-200">
+                                    @else
+                                        <div class="w-12 h-12 bg-gray-300 rounded-md flex items-center justify-center">
+                                            <i class="fas fa-image text-gray-500"></i>
+                                        </div>
+                                    @endif
                                     <div>
                                         <p class="text-gray-900 font-medium">{{ $item->product->name }}</p>
                                         <p class="text-gray-600 text-sm">Qty: {{ $item->quantity }}</p>
                                     </div>
                                 </div>
-                                <span class="text-gray-900">Rp {{ number_format($item->price * $item->quantity, 0, ',', '.') }}</span>
+                                <span class="text-gray-900 font-semibold ml-4">Rp {{ number_format($item->price * $item->quantity, 0, ',', '.') }}</span>
                             </div>
                             @endforeach
                         </div>
                     </div>
 
-                    @if($transaction->status === 'pending' && !$transaction->isExpired())
-                    <div class="mt-4 pt-4 border-t border-gray-200">
-                        <a href="#" 
-                           class="inline-flex items-center px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors">
-                            <i class="fas fa-credit-card mr-2"></i>
-                            Lanjutkan Pembayaran
-                        </a>
+                    <!-- Added dynamic buttons based on payment status -->
+                    <div class="mt-4 pt-4 border-t border-gray-200 flex gap-3">
+                        @if($transaction->status === 'pending' && !$transaction->isExpired())
+                            <a href="{{ route('checkout.success', $transaction->id) }}" 
+                               class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-medium">
+                                <i class="fas fa-credit-card mr-2"></i>
+                                Lanjutkan Pembayaran
+                            </a>
+                        @elseif($transaction->status === 'paid')
+                            <a href="{{ route('checkout.success', $transaction->id) }}" 
+                               class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
+                                <i class="fas fa-eye mr-2"></i>
+                                Lihat Detail
+                            </a>
+                        @elseif($transaction->isExpired())
+                            <button disabled
+                               class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed font-medium">
+                                <i class="fas fa-times-circle mr-2"></i>
+                                Transaksi Expired
+                            </button>
+                        @endif
                     </div>
-                    @endif
                 </div>
             </div>
             @endforeach

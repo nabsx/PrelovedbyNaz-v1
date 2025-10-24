@@ -130,15 +130,15 @@ class TransactionController extends Controller
 
             $cartItems->each->delete();
 
-            return redirect()->route('checkout.success', $transaction->id)
+            return redirect()->route('checkout.success', $transaction->transaction_code)
                 ->with('success', 'Pesanan berhasil dibuat. Silakan lakukan pembayaran.');
         });
     }
 
-    public function success($transactionId)
+    public function success($transaction_code)
     {
         $transaction = Transaction::with('items.product')
-            ->where('id', $transactionId)
+            ->where('transaction_code', $transaction_code)
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
