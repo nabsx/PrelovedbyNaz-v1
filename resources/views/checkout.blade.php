@@ -20,6 +20,13 @@
                     Detail Pesanan
                 </h2>
                 <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl p-4 border-2 border-pink-200">
+                    <!-- Add transaction code display for easy tracking -->
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-gray-600 font-medium">Kode Transaksi:</span>
+                        <span class="font-mono text-lg font-bold text-pink-600 bg-white px-4 py-2 rounded-lg border-2 border-pink-300">
+                            {{ $transaction->getFormattedTransactionCode() }}
+                        </span>
+                    </div>
                     <div class="flex justify-between items-center mb-3">
                         <span class="text-gray-600 font-medium">Order ID:</span>
                         <span class="font-mono text-gray-900 bg-white px-3 py-1 rounded-lg">{{ $transaction->midtrans_order_id }}</span>
@@ -59,6 +66,13 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Add info box with transaction code for reference -->
+            <div class="mt-6 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                <p class="text-blue-700 text-sm">
+                    <strong>Catatan:</strong> Simpan kode transaksi <strong>{{ $transaction->getFormattedTransactionCode() }}</strong> untuk melacak pesanan Anda.
+                </p>
+            </div>
         </div>
     </div>
 </div>
@@ -73,19 +87,19 @@
         snap.pay('{{ $snapToken }}', {
             onSuccess: function(result) {
                 // Redirect to success page
-                window.location.href = '{{ route('transactions.history') }}?status=success';
+                window.location.href = '{{ route('transactions.history') }}?status=success&code={{ $transaction->getFormattedTransactionCode() }}';
             },
             onPending: function(result) {
                 // Redirect to pending page
-                window.location.href = '{{ route('transactions.history') }}?status=pending';
+                window.location.href = '{{ route('transactions.history') }}?status=pending&code={{ $transaction->getFormattedTransactionCode() }}';
             },
             onError: function(result) {
                 // Redirect to error page
-                window.location.href = '{{ route('transactions.history') }}?status=error';
+                window.location.href = '{{ route('transactions.history') }}?status=error&code={{ $transaction->getFormattedTransactionCode() }}';
             },
             onClose: function() {
                 // User closed the payment form
-                alert('Anda menutup halaman pembayaran. Pesanan masih menunggu pembayaran.');
+                alert('Anda menutup halaman pembayaran. Pesanan masih menunggu pembayaran. Kode Transaksi: {{ $transaction->getFormattedTransactionCode() }}');
             }
         });
     });

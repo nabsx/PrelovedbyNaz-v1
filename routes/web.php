@@ -39,6 +39,7 @@ Route::prefix('cart')->group(function () {
 Route::middleware('auth')->group(function () {
     Route::get('/checkout', [TransactionController::class, 'showCheckoutForm'])->name('checkout.form');
     Route::post('/checkout', [TransactionController::class, 'checkout'])->name('checkout');
+    Route::get('/checkout/success/{transaction}', [TransactionController::class, 'success'])->name('checkout.success');
     Route::get('/transactions/history', [TransactionController::class, 'history'])->name('transactions.history');
 });
 

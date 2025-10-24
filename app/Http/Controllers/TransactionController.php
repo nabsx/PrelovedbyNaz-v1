@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\TransactionCodeGenerator;
 use App\Models\CartItem;
 use App\Models\Transaction;
 use App\Models\TransactionItem;
@@ -10,8 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class TransactionController extends Controller
 {
-    // Midtrans will be initialized only when needed (in checkout method)
-
     public function showCheckoutForm()
     {
         $cartItems = CartItem::with('product')
@@ -75,21 +74,12 @@ class TransactionController extends Controller
 
     public function checkout(Request $request)
     {
-        try {
-            \Midtrans\Config::$serverKey = config('services.midtrans.server_key');
-            \Midtrans\Config::$isProduction = config('services.midtrans.is_production');
-            \Midtrans\Config::$isSanitized = config('services.midtrans.is_sanitized');
-            \Midtrans\Config::$is3ds = config('services.midtrans.is_3ds');
-        } catch (\Exception $e) {
-            return back()->with('error', 'Payment gateway configuration error. Please contact support.');
-        }
-
         $validated = $request->validate([
             'address' => 'required|string|max:255',
             'postal_code' => 'required|string|max:10',
             'city' => 'required|string|max:100',
             'phone' => 'required|string|max:20',
-            'payment_method' => 'required|in:credit_card,bank_transfer,e_wallet',
+            'payment_method' => 'required|string',
         ]);
 
         $cartItems = CartItem::with('product')
@@ -98,12 +88,12 @@ class TransactionController extends Controller
             ->get();
 
         if ($cartItems->isEmpty()) {
-            return back()->with('error', 'Your cart is empty.');
+            return back()->with('error', 'Keranjang Anda kosong.');
         }
 
         foreach ($cartItems as $item) {
             if (!$item->product->hasStock($item->quantity)) {
-                return back()->with('error', "Insufficient stock for {$item->product->name}.");
+                return back()->with('error', "Stok tidak cukup untuk {$item->product->name}.");
             }
         }
 
@@ -112,12 +102,14 @@ class TransactionController extends Controller
                 return $item->product->price * $item->quantity;
             });
 
+            $transactionCode = TransactionCodeGenerator::generate();
+
             $transaction = Transaction::create([
                 'user_id' => auth()->id(),
-                'midtrans_order_id' => 'PRELOVED-' . now()->timestamp . '-' . auth()->id(),
+                'transaction_code' => $transactionCode,
                 'status' => 'pending',
                 'total_price' => $total,
-                'expires_at' => now()->addHour(),
+                'expires_at' => now()->addHours(24),
                 'address' => $validated['address'],
                 'postal_code' => $validated['postal_code'],
                 'city' => $validated['city'],
@@ -138,63 +130,19 @@ class TransactionController extends Controller
 
             $cartItems->each->delete();
 
-            $params = [
-                'transaction_details' => [
-                    'order_id' => $transaction->midtrans_order_id,
-                    'gross_amount' => (int) $total,
-                ],
-                'customer_details' => [
-                    'first_name' => auth()->user()->name,
-                    'email' => auth()->user()->email,
-                    'phone' => $validated['phone'],
-                ],
-            ];
-
-            try {
-                $snapToken = \Midtrans\Snap::getSnapToken($params);
-                $transaction->update(['snap_token' => $snapToken]);
-            } catch (\Exception $e) {
-                return back()->with('error', 'Failed to generate payment token. Please try again.');
-            }
-
-            return view('checkout', compact('transaction', 'snapToken'));
+            return redirect()->route('checkout.success', $transaction->id)
+                ->with('success', 'Pesanan berhasil dibuat. Silakan lakukan pembayaran.');
         });
     }
 
-    public function handleNotification(Request $request)
+    public function success($transactionId)
     {
-        $payload = $request->all();
+        $transaction = Transaction::with('items.product')
+            ->where('id', $transactionId)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
 
-        $transaction = Transaction::where('midtrans_order_id', $payload['order_id'])->first();
-
-        if (!$transaction) {
-            return response()->json(['status' => 'error', 'message' => 'Transaction not found'], 404);
-        }
-
-        $transactionStatus = $payload['transaction_status'];
-        $fraudStatus = $payload['fraud_status'];
-
-        if ($transactionStatus == 'capture') {
-            if ($fraudStatus == 'accept') {
-                $transaction->update([
-                    'status' => 'paid',
-                    'midtrans_transaction_id' => $payload['transaction_id'],
-                ]);
-            }
-        } elseif ($transactionStatus == 'settlement') {
-            $transaction->update([
-                'status' => 'paid',
-                'midtrans_transaction_id' => $payload['transaction_id'],
-            ]);
-        } elseif ($transactionStatus == 'cancel' || $transactionStatus == 'deny' || $transactionStatus == 'expire') {
-            $transaction->update(['status' => 'expired']);
-            
-            foreach ($transaction->items as $item) {
-                $item->product->increaseStock($item->quantity);
-            }
-        }
-
-        return response()->json(['status' => 'success']);
+        return view('checkout-success', compact('transaction'));
     }
 
     public function history()
