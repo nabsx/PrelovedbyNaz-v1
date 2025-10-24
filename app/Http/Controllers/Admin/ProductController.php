@@ -9,19 +9,39 @@ use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
+    /**
+     * HAPUS CONSTRUCTOR - tidak perlu middleware di controller
+     * Gunakan manual check di setiap method
+     */
+
     public function index()
     {
+        // MANUAL ADMIN CHECK
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
         $products = Product::latest()->paginate(10);
         return view('admin.products.index', compact('products'));
     }
 
     public function create()
     {
+        // MANUAL ADMIN CHECK
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
         return view('admin.products.create');
     }
 
     public function store(Request $request)
     {
+        // MANUAL ADMIN CHECK
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
@@ -38,13 +58,33 @@ class ProductController extends Controller
             ->with('success', 'Product created successfully.');
     }
 
+    public function show(Product $product)
+    {
+        // MANUAL ADMIN CHECK
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
+        return view('admin.products.show', compact('product'));
+    }
+
     public function edit(Product $product)
     {
+        // MANUAL ADMIN CHECK
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
         return view('admin.products.edit', compact('product'));
     }
 
     public function update(Request $request, Product $product)
     {
+        // MANUAL ADMIN CHECK
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'description' => 'required|string',
@@ -66,6 +106,11 @@ class ProductController extends Controller
 
     public function destroy(Product $product)
     {
+        // MANUAL ADMIN CHECK
+        if (auth()->user()->role !== 'admin') {
+            abort(403, 'Unauthorized access. Admin only.');
+        }
+
         $product->delete();
 
         return redirect()->route('admin.products.index')
