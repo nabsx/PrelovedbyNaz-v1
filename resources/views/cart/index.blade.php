@@ -162,7 +162,6 @@
             const maxQuantity = parseInt(inputElement?.dataset.maxQuantity) || 0;
             
             if (newQuantity < 1 || newQuantity > maxQuantity) {
-                console.log("[v0] Invalid quantity:", newQuantity, "Max:", maxQuantity);
                 return;
             }
 
@@ -174,9 +173,15 @@
                 },
                 body: JSON.stringify({ quantity: newQuantity })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Terjadi kesalahan saat mengupdate keranjang');
+                    });
+                }
+                return response.json();
+            })
             .then(data => {
-                console.log("[v0] Response:", data);
                 if (data.success) {
                     // Update input value
                     if (inputElement) {
@@ -199,8 +204,11 @@
                 }
             })
             .catch(error => {
-                console.error('[v0] Error:', error);
-                showMessage('Terjadi kesalahan saat mengupdate keranjang', 'error');
+                console.error('Error:', error);
+                showMessage(error.message || 'Terjadi kesalahan saat mengupdate keranjang', 'error');
+                setTimeout(() => {
+                    location.reload();
+                }, 2000);
             });
         }
 

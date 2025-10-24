@@ -121,27 +121,37 @@ class CartController extends Controller
             ], 422);
         }
 
-        $cartItem->update([
-            'quantity' => $request->quantity,
-            'expires_at' => now()->addMinutes(20),
-        ]);
+        try {
+            $cartItem->update([
+                'quantity' => $request->quantity,
+                'expires_at' => now()->addMinutes(20),
+            ]);
 
-        $itemTotal = $cartItem->product->price * $cartItem->quantity;
-        $total = CartItem::active()
-            ->forUser(auth()->user())
-            ->sum(function ($item) {
-                return $item->product->price * $item->quantity;
-            });
+            $itemTotal = $cartItem->product->price * $cartItem->quantity;
+            
+            $total = CartItem::active()
+                ->forUser(auth()->user())
+                ->with('product')
+                ->get()
+                ->sum(function ($item) {
+                    return $item->product->price * $item->quantity;
+                });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Keranjang berhasil diupdate',
-            'quantity' => $cartItem->quantity,
-            'itemTotal' => $itemTotal,
-            'total' => $total,
-            'formattedItemTotal' => 'Rp ' . number_format($itemTotal, 0, ',', '.'),
-            'formattedTotal' => 'Rp ' . number_format($total, 0, ',', '.')
-        ]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Keranjang berhasil diupdate',
+                'quantity' => $cartItem->quantity,
+                'itemTotal' => $itemTotal,
+                'total' => $total,
+                'formattedItemTotal' => 'Rp ' . number_format($itemTotal, 0, ',', '.'),
+                'formattedTotal' => 'Rp ' . number_format($total, 0, ',', '.')
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function update(Request $request, CartItem $cartItem)
