@@ -77,13 +77,13 @@
                     <!-- Added dynamic buttons based on payment status -->
                     <div class="mt-4 pt-4 border-t border-gray-200 flex gap-3">
                         @if($transaction->status === 'pending' && !$transaction->isExpired())
-                            <a href="{{ route('checkout.success', $transaction->id) }}" 
+                            <a href="{{ route('checkout.success', $transaction->transaction_code) }}" 
                                class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600 transition-colors font-medium">
                                 <i class="fas fa-credit-card mr-2"></i>
                                 Lanjutkan Pembayaran
                             </a>
                         @elseif($transaction->status === 'paid')
-                            <a href="{{ route('checkout.success', $transaction->id) }}" 
+                            <a href="{{ route('checkout.success', $transaction->transaction_code) }}" 
                                class="flex-1 inline-flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors font-medium">
                                 <i class="fas fa-eye mr-2"></i>
                                 Lihat Detail
