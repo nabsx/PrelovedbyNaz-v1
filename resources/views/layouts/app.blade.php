@@ -108,8 +108,14 @@
             <div class="flex justify-between items-center py-4">
                 <!-- Logo -->
                 <div class="flex items-center space-x-2">
-                    <a href="{{ route('home') }}" class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
-                        <i class="fas fa-crown mr-2"></i>Preloved By Naz
+                    <a href="{{ route('home') }}" class="flex items-center space-x-2 hover:opacity-80 transition-opacity">
+                        @if(file_exists(public_path('images/logo.png')))
+                            <img src="{{ asset('images/logo.png') }}" alt="Preloved Logo" class="h-16 w-auto">
+                        @else
+                            <div class="text-2xl font-bold bg-gradient-to-r from-pink-500 to-pink-600 bg-clip-text text-transparent">
+                                <i class="fas fa-crown mr-2"></i>
+                            </div>
+                        @endif
                     </a>
                 </div>
 
@@ -219,9 +225,13 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
                 <!-- Brand -->
                 <div>
-                    <h3 class="text-2xl font-bold mb-2">
-                        <i class="fas fa-crown mr-2"></i>PrelovedByNaz
-                    </h3>
+                    @if(file_exists(public_path('images/logo.png')))
+                        <img src="{{ asset('images/logo.png') }}" alt="Preloved Logo" class="h-24 w-auto mb-2">
+                    @else
+                        <h3 class="text-2xl font-bold mb-2">
+                            <i class="fas fa-crown mr-2"></i>Preloved by Naz
+                        </h3>
+                    @endif
                     <p class="text-pink-100 text-sm">Platform terpercaya untuk membeli barang preloved dengan harga terbaik dan aman.</p>
                 </div>
 
