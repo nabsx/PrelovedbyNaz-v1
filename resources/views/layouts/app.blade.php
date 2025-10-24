@@ -122,8 +122,8 @@
                 <!-- Menu Items -->
                 <div class="hidden md:flex items-center space-x-8">
                     <a href="{{ route('products.index') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Produk</a>
-                    <a href="{{ route('products.index') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Keranjang</a>
-                    <a href="{{ route('products.index') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Check Pesanan</a>
+                    <a href="{{ route('cart.index') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Keranjang</a>
+                    <a href="{{ route('transactions.history') }}" class="text-gray-700 hover:text-pink-600 font-medium transition-colors">Check Pesanan</a>
                 </div>
 
                 <!-- Right Side -->
