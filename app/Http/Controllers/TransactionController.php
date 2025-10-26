@@ -109,6 +109,7 @@ class TransactionController extends Controller
             $transaction = Transaction::create([
                 'user_id' => auth()->id(),
                 'transaction_code' => $transactionCode,
+                'midtrans_order_id' => $transactionCode,
                 'status' => 'pending',
                 'total_price' => $total,
                 'expires_at' => now()->addHours(24),
@@ -225,43 +226,144 @@ class TransactionController extends Controller
         return view('checkout-success', compact('transaction'));
     }
 
+    public function testNotification($transaction_code)
+    {
+        $transaction = Transaction::where('transaction_code', $transaction_code)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        $grossAmount = (int) $transaction->total_price;
+        
+        // Simulasi notifikasi dari Midtrans
+        $payload = [
+            'order_id' => $transaction->transaction_code,
+            'transaction_status' => 'settlement',
+            'status_code' => '200',
+            'gross_amount' => $grossAmount,
+            'transaction_id' => 'midtrans-' . time(),
+            'signature_key' => hash('sha512', $transaction->transaction_code . '|200|' . $grossAmount . '|' . config('midtrans.server_key')),
+        ];
+
+        \Log::info('=== MANUAL TEST NOTIFICATION ===', $payload);
+
+        // Call handleNotification dengan payload test
+        $request = new Request($payload);
+        return $this->handleNotification($request);
+    }
+
+    public function getTransactionStatus($transaction_code)
+    {
+        $transaction = Transaction::where('transaction_code', $transaction_code)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        return response()->json([
+            'transaction_code' => $transaction->transaction_code,
+            'status' => $transaction->status,
+            'paid_at' => $transaction->paid_at,
+            'total_price' => $transaction->total_price,
+            'payment_details' => $transaction->payment_details,
+            'created_at' => $transaction->created_at,
+        ]);
+    }
+
+    public function checkStatus($transaction_code)
+    {
+        $transaction = Transaction::where('transaction_code', $transaction_code)
+            ->where('user_id', auth()->id())
+            ->firstOrFail();
+
+        return response()->json([
+            'status' => $transaction->status,
+            'paid_at' => $transaction->paid_at,
+            'is_paid' => $transaction->isPaid(),
+        ]);
+    }
+
     public function handleNotification(Request $request)
     {
-        $payload = $request->all();
-        $serverKey = config('midtrans.server_key');
-        $hashed = hash('sha512', $payload['order_id'] . $payload['status_code'] . $payload['gross_amount'] . $serverKey);
+        \Log::info('=== MIDTRANS NOTIFICATION RECEIVED ===', [
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'headers' => $request->headers->all(),
+            'all_data' => $request->all(),
+        ]);
 
-        if ($hashed !== $payload['signature_key']) {
-            return response()->json(['message' => 'Invalid signature'], 403);
+        $payload = $request->all();
+        
+        \Log::info('=== MIDTRANS NOTIFICATION PAYLOAD ===', [
+            'order_id' => $payload['order_id'] ?? null,
+            'transaction_status' => $payload['transaction_status'] ?? null,
+            'status_code' => $payload['status_code'] ?? null,
+            'gross_amount' => $payload['gross_amount'] ?? null,
+        ]);
+        
+        $orderId = $payload['order_id'] ?? '';
+        
+        if (!$orderId) {
+            \Log::error('ORDER ID NOT FOUND IN NOTIFICATION');
+            return response()->json(['message' => 'Order ID not found'], 200);
         }
 
-        $transaction = Transaction::where('transaction_code', $payload['order_id'])->first();
+        try {
+            $midtransStatus = MidtransTransaction::status($orderId);
+            
+            \Log::info('Midtrans Status Retrieved', [
+                'order_id' => $orderId,
+                'transaction_status' => $midtransStatus->transaction_status ?? null,
+                'status_code' => $midtransStatus->status_code ?? null,
+            ]);
+            
+            $transactionStatus = $midtransStatus->transaction_status ?? '';
+        } catch (\Exception $e) {
+            \Log::error('Error getting Midtrans status: ' . $e->getMessage());
+            // Fallback to payload status if SDK call fails
+            $transactionStatus = $payload['transaction_status'] ?? '';
+        }
+
+        $transaction = Transaction::where('transaction_code', $orderId)->first();
 
         if (!$transaction) {
-            return response()->json(['message' => 'Transaction not found'], 404);
+            \Log::warning('TRANSACTION NOT FOUND', ['order_id' => $orderId]);
+            return response()->json(['message' => 'Transaction not found'], 200);
         }
 
-        $transactionStatus = $payload['transaction_status'];
+        \Log::info('Processing Transaction Status', [
+            'transaction_code' => $transaction->transaction_code,
+            'current_status' => $transaction->status,
+            'new_status' => $transactionStatus,
+        ]);
 
         if ($transactionStatus === 'capture' || $transactionStatus === 'settlement') {
             $transaction->update([
                 'status' => 'paid',
                 'paid_at' => now(),
-                'payment_details' => $payload,
+                'payment_details' => json_encode($payload),
                 'midtrans_transaction_id' => $payload['transaction_id'] ?? null,
+            ]);
+            \Log::info('✓ TRANSACTION MARKED AS PAID', [
+                'transaction_code' => $transaction->transaction_code,
+                'paid_at' => $transaction->paid_at,
+                'status' => $transaction->status,
             ]);
         } elseif ($transactionStatus === 'pending') {
             $transaction->update([
                 'status' => 'pending',
-                'payment_details' => $payload,
+                'payment_details' => json_encode($payload),
             ]);
+            \Log::info('Transaction Status: PENDING', ['transaction_code' => $transaction->transaction_code]);
         } elseif ($transactionStatus === 'deny' || $transactionStatus === 'cancel' || $transactionStatus === 'expire') {
             $transaction->update([
                 'status' => 'expired',
-                'payment_details' => $payload,
+                'payment_details' => json_encode($payload),
             ]);
+            \Log::info('Transaction Status: EXPIRED', ['transaction_code' => $transaction->transaction_code]);
         }
 
+        \Log::info('=== NOTIFICATION PROCESSED SUCCESSFULLY ===', [
+            'transaction_code' => $transaction->transaction_code,
+            'final_status' => $transaction->status,
+        ]);
         return response()->json(['message' => 'Notification processed']);
     }
 

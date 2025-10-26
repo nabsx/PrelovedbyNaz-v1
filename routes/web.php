@@ -40,6 +40,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/checkout', [TransactionController::class, 'showCheckoutForm'])->name('checkout.form');
     Route::post('/checkout', [TransactionController::class, 'checkout'])->name('checkout');
     Route::get('/checkout/success/{transaction_code}', [TransactionController::class, 'success'])->name('checkout.success');
+    Route::get('/transaction/check-status/{transaction_code}', [TransactionController::class, 'checkStatus'])->name('transaction.check-status');
+    Route::get('/transaction/status/{transaction_code}', [TransactionController::class, 'getTransactionStatus'])->name('transaction.status');
+    Route::get('/transaction/test-notification/{transaction_code}', [TransactionController::class, 'testNotification'])->name('transaction.test-notification');
+    Route::get('/payment-debug', function () {
+        $transaction = \App\Models\Transaction::where('user_id', auth()->id())->latest()->first();
+        return view('payment-debug', compact('transaction'));
+    })->name('payment.debug');
     Route::get('/transactions/history', [TransactionController::class, 'history'])->name('transactions.history');
 });
 
@@ -74,18 +81,17 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     // Categories routes
     Route::resource('categories', CategoryController::class);
     
-    // Users routes - PERBAIKI INI: tambahkan namespace Admin
+    // Users routes
     Route::get('/users', [\App\Http\Controllers\Admin\UserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'show'])->name('users.show');
     Route::put('/users/{user}', [\App\Http\Controllers\Admin\UserController::class, 'update'])->name('users.update');
 });
 
-
-// Midtrans notification handler
 Route::post('/payment/notification', [TransactionController::class, 'handleNotification'])
-    ->name('payment.notification');
+    ->name('payment.notification')
+    ->withoutMiddleware(['web', \App\Http\Middleware\VerifyCsrfToken::class]);
 
-// Password reset routes (letakkan di luar group auth)
+// Password reset routes
 Route::get('/password/reset', [ForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
 Route::post('/password/email', [ForgotPasswordController::class, 'sendResetLinkEmail'])->name('password.email');
 Route::get('/password/reset/{token}', [ResetPasswordController::class, 'showResetForm'])->name('password.reset');
