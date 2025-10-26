@@ -273,10 +273,18 @@ class TransactionController extends Controller
             ->where('user_id', auth()->id())
             ->firstOrFail();
 
+        $isExpired = $transaction->isExpired();
+        
+        if ($isExpired && $transaction->isPending()) {
+            $transaction->update(['status' => 'expired']);
+        }
+
         return response()->json([
             'status' => $transaction->status,
             'paid_at' => $transaction->paid_at,
             'is_paid' => $transaction->isPaid(),
+            'is_expired' => $transaction->isExpired(),
+            'is_failed' => $transaction->status === 'failed',
         ]);
     }
 

@@ -5,19 +5,27 @@
     <div class="max-w-2xl mx-auto">
         <!-- Success Header -->
         <div class="text-center mb-8">
-            <div class="inline-flex items-center justify-center w-16 h-16 @if($transaction->isPaid()) bg-green-100 @else bg-blue-100 @endif rounded-full mb-4">
-                <i class="fas @if($transaction->isPaid()) fa-check text-3xl text-green-600 @else fa-clock text-3xl text-blue-600 @endif"></i>
+            <div class="inline-flex items-center justify-center w-16 h-16 @if($transaction->isPaid()) bg-green-100 @elseif($transaction->isExpired()) bg-red-100 @elseif($transaction->status === 'failed') bg-red-100 @else bg-blue-100 @endif rounded-full mb-4">
+                <i class="fas @if($transaction->isPaid()) fa-check text-3xl text-green-600 @elseif($transaction->isExpired()) fa-times text-3xl text-red-600 @elseif($transaction->status === 'failed') fa-exclamation text-3xl text-red-600 @else fa-clock text-3xl text-blue-600 @endif"></i>
             </div>
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">
+            <h1 id="page-title" class="text-4xl font-bold text-gray-900 mb-2">
                 @if($transaction->isPaid())
                     Pembayaran Berhasil!
+                @elseif($transaction->isExpired())
+                    Pembayaran Expired!
+                @elseif($transaction->status === 'failed')
+                    Pembayaran Gagal!
                 @else
                     Pesanan Berhasil Dibuat!
                 @endif
             </h1>
-            <p class="text-gray-600">
+            <p id="page-description" class="text-gray-600">
                 @if($transaction->isPaid())
                     Terima kasih telah melakukan pembayaran. Pesanan Anda sedang diproses.
+                @elseif($transaction->isExpired())
+                    Waktu pembayaran Anda telah berakhir. Silakan buat pesanan baru untuk melanjutkan.
+                @elseif($transaction->status === 'failed')
+                    Pembayaran Anda gagal. Silakan coba lagi atau gunakan metode pembayaran lain.
                 @else
                     Terima kasih telah berbelanja. Silakan lakukan pembayaran sesuai metode yang dipilih.
                 @endif
@@ -47,17 +55,25 @@
                 </button>
             </div>
 
-            <!-- Add payment status badge -->
+            <!-- Add payment status badge with expired and failed states -->
             <div class="text-center">
-                <span id="status-badge" class="inline-block px-4 py-2 @if($transaction->isPaid()) bg-green-100 text-green-800 @else bg-yellow-100 text-yellow-800 @endif rounded-full text-sm font-semibold">
-                    <i class="fas @if($transaction->isPaid()) fa-check-circle @else fa-hourglass-half @endif mr-2"></i>
-                    <span id="status-text">@if($transaction->isPaid())Sudah Dibayar@else Menunggu Pembayaran @endif</span>
+                <span id="status-badge" class="inline-block px-4 py-2 @if($transaction->isPaid()) bg-green-100 text-green-800 @elseif($transaction->isExpired()) bg-red-100 text-red-800 @elseif($transaction->status === 'failed') bg-red-100 text-red-800 @else bg-yellow-100 text-yellow-800 @endif rounded-full text-sm font-semibold">
+                    <i class="fas @if($transaction->isPaid()) fa-check-circle @elseif($transaction->isExpired()) fa-times-circle @elseif($transaction->status === 'failed') fa-exclamation-circle @else fa-hourglass-half @endif mr-2"></i>
+                    @if($transaction->isPaid())
+                        Sudah Dibayar
+                    @elseif($transaction->isExpired())
+                        Pembayaran Expired
+                    @elseif($transaction->status === 'failed')
+                        Pembayaran Gagal
+                    @else
+                        Menunggu Pembayaran
+                    @endif
                 </span>
             </div>
         </div>
 
-        <!-- Midtrans Payment Widget - only show if not paid -->
-        @if($transaction->snap_token && $transaction->isPending())
+        <!-- Midtrans Payment Widget - only show if not paid and not expired and not failed -->
+        @if($transaction->snap_token && $transaction->isPending() && !$transaction->isExpired() && $transaction->status !== 'failed')
         <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 border-2 border-pink-100">
             <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
                 <i class="fas fa-credit-card text-pink-500"></i>
@@ -77,6 +93,35 @@
                 Pembayaran Berhasil
             </h2>
             <p class="text-green-900">Pesanan Anda telah dikonfirmasi dan sedang diproses untuk pengiriman.</p>
+        </div>
+        <!-- Add expired payment section -->
+        @elseif($transaction->isExpired())
+        <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-8 mb-8">
+            <h2 class="text-xl font-semibold text-red-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-times-circle text-red-500"></i>
+                Pembayaran Expired
+            </h2>
+            <p class="text-red-900 mb-4">Waktu pembayaran Anda telah berakhir. Silakan buat pesanan baru untuk melanjutkan.</p>
+            <a href="{{ route('products.index') }}" class="inline-block px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors">
+                Buat Pesanan Baru
+            </a>
+        </div>
+        <!-- Add failed payment section -->
+        @elseif($transaction->status === 'failed')
+        <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-8 mb-8">
+            <h2 class="text-xl font-semibold text-red-900 mb-4 flex items-center gap-2">
+                <i class="fas fa-exclamation-circle text-red-500"></i>
+                Pembayaran Gagal
+            </h2>
+            <p class="text-red-900 mb-4">Pembayaran Anda gagal. Silakan coba lagi atau gunakan metode pembayaran lain.</p>
+            @if($transaction->snap_token)
+            <button 
+                id="pay-button"
+                class="px-6 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+            >
+                Coba Lagi
+            </button>
+            @endif
         </div>
         @endif
 
@@ -135,7 +180,7 @@
         </div>
 
         <!-- Payment Instructions -->
-        @if($transaction->isPending())
+        @if($transaction->isPending() && !$transaction->isExpired())
         <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-8 mb-8">
             <h2 class="text-xl font-semibold text-blue-900 mb-4 flex items-center gap-2">
                 <i class="fas fa-info-circle text-blue-500"></i>
@@ -173,15 +218,61 @@ function copyToClipboard(text) {
 }
 
 let pollCount = 0;
-const maxPolls = 240; // 4 minutes with 1 second interval
+const maxPolls = 120;
 let isPolling = false;
-let pollTimeout;
+
+function updatePaymentUI(status) {
+    const statusBadge = document.getElementById('status-badge');
+    const pageTitle = document.getElementById('page-title');
+    const pageDescription = document.getElementById('page-description');
+    const paymentSection = document.querySelector('[class*="Lakukan Pembayaran"]')?.closest('.bg-white');
+    
+    if (status === 'paid') {
+        // Update header
+        if (pageTitle) pageTitle.textContent = 'Pembayaran Berhasil!';
+        if (pageDescription) pageDescription.textContent = 'Terima kasih telah melakukan pembayaran. Pesanan Anda sedang diproses.';
+        
+        // Update status badge
+        if (statusBadge) {
+            statusBadge.className = 'inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold';
+            statusBadge.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Sudah Dibayar';
+        }
+        
+        // Hide payment button section
+        const payButton = document.getElementById('pay-button');
+        if (payButton) {
+            payButton.closest('.bg-white').style.display = 'none';
+        }
+    } else if (status === 'expired') {
+        if (pageTitle) pageTitle.textContent = 'Pembayaran Expired!';
+        if (pageDescription) pageDescription.textContent = 'Waktu pembayaran Anda telah berakhir. Silakan buat pesanan baru untuk melanjutkan.';
+        
+        if (statusBadge) {
+            statusBadge.className = 'inline-block px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-semibold';
+            statusBadge.innerHTML = '<i class="fas fa-times-circle mr-2"></i>Pembayaran Expired';
+        }
+        
+        const payButton = document.getElementById('pay-button');
+        if (payButton) {
+            payButton.closest('.bg-white').style.display = 'none';
+        }
+    } else if (status === 'failed') {
+        if (pageTitle) pageTitle.textContent = 'Pembayaran Gagal!';
+        if (pageDescription) pageDescription.textContent = 'Pembayaran Anda gagal. Silakan coba lagi atau gunakan metode pembayaran lain.';
+        
+        if (statusBadge) {
+            statusBadge.className = 'inline-block px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-semibold';
+            statusBadge.innerHTML = '<i class="fas fa-exclamation-circle mr-2"></i>Pembayaran Gagal';
+        }
+    }
+}
 
 function checkPaymentStatus() {
     if (isPolling) return;
     isPolling = true;
     
     const transactionCode = '{{ $transaction->transaction_code }}';
+    console.log('[v0] Checking payment status... Poll count:', pollCount);
     
     fetch('{{ route("transaction.check-status", $transaction->transaction_code) }}', {
         method: 'GET',
@@ -200,73 +291,60 @@ function checkPaymentStatus() {
         isPolling = false;
         
         if (data.is_paid) {
-            console.log('[v0] Payment confirmed! Updating UI...');
-            updateUIToPaid();
+            console.log('[v0] Payment confirmed!');
             clearTimeout(pollTimeout);
-            // Reload page after 2 seconds to show full updated state
-            setTimeout(() => location.reload(), 2000);
+            updatePaymentUI('paid');
+        } else if (data.is_expired) {
+            console.log('[v0] Payment expired!');
+            clearTimeout(pollTimeout);
+            updatePaymentUI('expired');
+        } else if (data.is_failed) {
+            console.log('[v0] Payment failed!');
+            clearTimeout(pollTimeout);
+            updatePaymentUI('failed');
         } else if (pollCount < maxPolls) {
             pollCount++;
             pollTimeout = setTimeout(checkPaymentStatus, 1000);
-        } else {
-            console.log('[v0] Max polls reached, stopping polling');
-            isPolling = false;
         }
     })
     .catch(error => {
-        console.error('[v0] Error checking status:', error);
+        console.error('[v0] Error:', error);
         isPolling = false;
         if (pollCount < maxPolls) {
             pollCount++;
-            pollTimeout = setTimeout(checkPaymentStatus, 2000); // Retry after 2 seconds on error
+            pollTimeout = setTimeout(checkPaymentStatus, 1000);
         }
     });
 }
 
-function updateUIToPaid() {
-    const badge = document.getElementById('status-badge');
-    const statusText = document.getElementById('status-text');
-    
-    if (badge) {
-        badge.className = 'inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold';
-        badge.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Sudah Dibayar';
-    }
-    
-    // Hide payment button if exists
-    const payButton = document.getElementById('pay-button');
-    if (payButton) {
-        payButton.closest('.bg-white').style.display = 'none';
-    }
-}
+let pollTimeout;
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[v0] Page loaded, starting payment status check...');
+    console.log('[v0] Page loaded');
     
-    // Only start polling if transaction is still pending
-    @if($transaction->isPending())
-        checkPaymentStatus();
-    @endif
+    console.log('[v0] Doing initial status check...');
+    checkPaymentStatus();
 });
 
 document.getElementById('pay-button')?.addEventListener('click', function() {
     console.log('[v0] Pay button clicked');
     snap.pay('{{ $transaction->snap_token }}', {
         onSuccess: function(result) {
-            console.log('[v0] Payment success callback triggered');
+            console.log('[v0] Payment success');
             pollCount = 0;
             checkPaymentStatus();
         },
         onPending: function(result) {
-            console.log('[v0] Payment pending callback triggered');
+            console.log('[v0] Payment pending');
             pollCount = 0;
             checkPaymentStatus();
         },
         onError: function(result) {
-            console.log('[v0] Payment error callback triggered');
+            console.log('[v0] Payment error');
             alert('Pembayaran gagal. Silakan coba lagi.');
         },
         onClose: function() {
-            console.log('[v0] Payment popup closed, checking status...');
+            console.log('[v0] Payment popup closed');
             pollCount = 0;
             checkPaymentStatus();
         }
